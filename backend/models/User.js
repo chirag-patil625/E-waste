@@ -17,19 +17,7 @@ const userSchema = new mongoose.Schema({
     phone: {
         type: String,
         required: true
-    },
-    address: {
-        street: { type: String },
-        city: { type: String },
-        state: { type: String },
-        zipCode: { type: String },
-        country: { type: String }
-    },
-    isAdmin: {
-        type: Boolean,
-        default: false
     }
 });
 
-const User = mongoose.model('User', userSchema);
-module.exports = User;
+module.exports = mongoose.model('User', userSchema);

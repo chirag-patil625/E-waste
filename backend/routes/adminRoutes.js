@@ -6,6 +6,8 @@ const adminAuth = require('../middleware/adminAuth');
 const Admin = require('../models/Admin');
 const Event = require('../models/Events');
 const Education = require('../models/Education');
+const Recycle = require('../models/Recycle');
+const User = require('../models/User');  // Add this line
 
 const JWT_SECRET = process.env.JWT_SECRET || 'thisisaverylongstringthatshouldbeusedasasecret';
 
@@ -119,6 +121,76 @@ router.delete('/deleteEvent/:id', adminAuth, async (req, res) => {
     } catch (error) {
         console.error('Error deleting event:', error);
         res.status(500).json({ error: 'Failed to delete event' });
+    }
+});
+
+// Get all recycle requests
+router.get('/recycleRequests', adminAuth, async (req, res) => {
+    try {
+        const requests = await Recycle.find({})
+            .select('name deviceType condition quantity description submittedBy address status tokens')
+            .sort({ createdAt: -1 });
+        res.json(requests);
+    } catch (error) {
+        console.error('Error fetching recycle requests:', error);
+        res.status(500).json({ error: 'Failed to fetch recycle requests' });
+    }
+});
+
+// Update recycle request status and assign tokens
+router.patch('/recycleRequests/:id', adminAuth, async (req, res) => {
+    try {
+        const { status, tokens } = req.body;
+        
+        if (!['approved', 'rejected'].includes(status)) {
+            return res.status(400).json({ error: 'Invalid status' });
+        }
+
+        if (status === 'approved' && (!tokens || tokens < 0)) {
+            return res.status(400).json({ error: 'Valid tokens must be provided for approval' });
+        }
+
+        const request = await Recycle.findById(req.params.id);
+        if (!request) {
+            return res.status(404).json({ error: 'Recycle request not found' });
+        }
+
+        const updatedRequest = await Recycle.findByIdAndUpdate(
+            req.params.id,
+            { 
+                status,
+                tokens: status === 'approved' ? tokens : 0,
+                reviewedAt: new Date()
+            },
+            { new: true }
+        );
+
+        res.json({
+            message: `Request ${status}`,
+            request: updatedRequest
+        });
+    } catch (error) {
+        console.error('Error updating recycle request:', error);
+        res.status(500).json({ error: 'Failed to update recycle request' });
+    }
+});
+
+// Get admin dashboard stats
+router.get('/dashboard-stats', adminAuth, async (req, res) => {
+    try {
+        // Get pending requests count
+        const pendingRequests = await Recycle.countDocuments({ status: 'pending' });
+        
+        // Get total users count
+        const totalUsers = await User.countDocuments();
+
+        res.json({
+            pendingRequests,
+            totalUsers
+        });
+    } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+        res.status(500).json({ error: 'Failed to fetch dashboard statistics' });
     }
 });
 

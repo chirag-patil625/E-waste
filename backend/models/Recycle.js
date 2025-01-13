@@ -40,14 +40,20 @@ const recycleSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        default: 'Pending',
-        enum: ['Pending', 'Approved', 'Collected', 'Recycled']
+        enum: ['pending', 'approved', 'rejected'],
+        default: 'pending'
+    },
+    tokens: {
+        type: Number,
+        default: 0
+    },
+    reviewedAt: {
+        type: Date
     },
     createdAt: {
         type: Date,
         default: Date.now
     }
-});
+}, { timestamps: true });
 
-const Item = mongoose.model('Recycle', recycleSchema);
-module.exports = Item;
+module.exports = mongoose.model('Recycle', recycleSchema);

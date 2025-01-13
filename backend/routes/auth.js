@@ -5,24 +5,20 @@ const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 
-const JWT_SECRET = "rand_dhande";
+const JWT_SECRET = process.env.JWT_SECRET || 'thisisaverylongstringthatshouldbeusedasasecret';
+
 
 const validateSignup = [
     body('fullName').trim().isLength({ min: 3 }).escape(),
     body('email').isEmail().normalizeEmail(),
     body('password').isLength({ min: 8 }),
-    body('confirmPassword').isLength({ min: 8 }).custom((value, { req }) => {
+    body('confirmPassword').custom((value, { req }) => {
         if (value !== req.body.password) {
             throw new Error('Password confirmation does not match password');
         }
         return true;
     }),
-    body('phone').notEmpty(),
-    body('address.street').notEmpty(),
-    body('address.city').notEmpty(),
-    body('address.state').notEmpty(),
-    body('address.zipCode').notEmpty(),
-    body('address.country').notEmpty()
+    body('phone').notEmpty()
 ];
 
 const validateLogin = [
@@ -55,17 +51,17 @@ router.post('/signup', validateSignup, async (req, res) => {
             fullName: req.body.fullName,
             email: req.body.email,
             password: hashedPassword,
-            phone: req.body.phone,
-            address: {
-                street: req.body.address.street,
-                city: req.body.address.city,
-                state: req.body.address.state,
-                zipCode: req.body.address.zipCode,
-                country: req.body.address.country
-            }
+            phone: req.body.phone
         });
 
         await user.save();
+
+        // Create default profile
+        const profile = new Profile({
+            userId: user._id,
+            name: user.fullName
+        });
+        await profile.save();
 
         const token = jwt.sign(
             { id: user._id },
@@ -78,8 +74,7 @@ router.post('/signup', validateSignup, async (req, res) => {
             user: {
                 id: user._id,
                 fullName: user.fullName,
-                email: user.email,
-                address: user.address
+                email: user.email
             }
         });
     } catch (error) {
@@ -98,7 +93,7 @@ router.post('/login', validateLogin, async (req, res) => {
         const user = await User.findOne({ email: req.body.email });
         if (!user) {
             return res.status(400).json({ message: 'Invalid credentials' });
-        }
+        } 
 
         const validPassword = await bcrypt.compare(req.body.password, user.password);
         if (!validPassword) {
