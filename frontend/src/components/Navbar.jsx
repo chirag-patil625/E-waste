@@ -1,11 +1,65 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
-const Navbar = ({ isAuthenticated }) => {
+const Navbar = () => {
+  const { isLoggedIn, logout, loading } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+
+  const handleLogout = () => {
+    logout();
+    // Optional: navigate to home or login page
+  };
 
   const activeClassName = "text-green-500 font-bold border-b-2 border-green-500 pb-1";
   const inactiveClassName = "text-gray-700 hover:text-green-500 hover:border-b-2 hover:border-green-500 transition-all duration-200 pb-1";
+
+  const AuthButtons = () => (
+    isLoggedIn ? (
+      <div className="flex items-center space-x-4">
+        <NavLink 
+          to="/profile" 
+          className="bg-green-500 text-white px-6 py-2 rounded-md shadow-md hover:bg-green-600 hover:shadow-lg transform transition-all duration-200 hover:-translate-y-0.5"
+        >
+          Profile
+        </NavLink>
+        <button
+          onClick={handleLogout}
+          className="bg-transparent text-green-600 px-6 py-2 border-2 border-green-500 rounded-md hover:bg-green-500 hover:text-white transition-all duration-200"
+        >
+          Logout
+        </button>
+      </div>
+    ) : (
+      <>
+        <NavLink 
+          to="/login" 
+          className="bg-transparent text-green-600 px-6 py-2 border-2 border-green-500 rounded-md hover:bg-green-500 hover:text-white transition-all duration-200"
+        >
+          Login
+        </NavLink>
+        <NavLink 
+          to="/signup" 
+          className="bg-green-500 text-white px-6 py-2 rounded-md shadow-md hover:bg-green-600 hover:shadow-lg transform transition-all duration-200 hover:-translate-y-0.5"
+        >
+          Sign Up
+        </NavLink>
+      </>
+    )
+  );
+
+  if (loading) {
+    return <nav className="bg-white shadow-lg relative z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-20">
+          <div className="flex-shrink-0">
+            <span className="text-3xl font-bold text-green-600">E-Waste</span>
+          </div>
+        </div>
+      </div>
+    </nav>;
+  }
 
   return (
     <nav className="bg-white shadow-lg relative z-50">
@@ -42,31 +96,9 @@ const Navbar = ({ isAuthenticated }) => {
               }>About Us</NavLink>
             </div>
 
-            {isAuthenticated ? (
-              <div className="flex items-center space-x-6 ml-8">
-                <NavLink to="/rewards" className={({ isActive }) => 
-                  isActive ? activeClassName : inactiveClassName
-                }>Rewards</NavLink>
-                <NavLink to="/dashboard" className={({ isActive }) => 
-                  isActive ? activeClassName : inactiveClassName
-                }>Dashboard</NavLink>
-              </div>
-            ) : (
-              <div className="flex items-center space-x-4 ml-8">
-                <NavLink 
-                  to="/login" 
-                  className="bg-transparent text-green-600 px-6 py-2 border-2 border-green-500 rounded-md hover:bg-green-500 hover:text-white transition-all duration-200"
-                >
-                  Login
-                </NavLink>
-                <NavLink 
-                  to="/signup" 
-                  className="bg-green-500 text-white px-6 py-2 rounded-md shadow-md hover:bg-green-600 hover:shadow-lg transform transition-all duration-200 hover:-translate-y-0.5"
-                >
-                  Sign Up
-                </NavLink>
-              </div>
-            )}
+            <div className="hidden md:flex items-center space-x-4 ml-8">
+              <AuthButtons />
+            </div>
           </div>
 
           {/* Mobile menu button */}
@@ -116,15 +148,21 @@ const Navbar = ({ isAuthenticated }) => {
               `block px-4 py-3 rounded-lg text-base font-medium text-center ${isActive ? 'bg-green-500 text-white' : 'text-gray-700 hover:bg-green-50'}`
             }>About Us</NavLink>
 
-            {isAuthenticated ? (
-              <>
-                <NavLink to="/rewards" className={({ isActive }) => 
-                  `block px-4 py-3 rounded-lg text-base font-medium text-center ${isActive ? 'bg-green-500 text-white' : 'text-gray-700 hover:bg-green-50'}`
-                }>Rewards</NavLink>
-                <NavLink to="/dashboard" className={({ isActive }) => 
-                  `block px-4 py-3 rounded-lg text-base font-medium text-center ${isActive ? 'bg-green-500 text-white' : 'text-gray-700 hover:bg-green-50'}`
-                }>Dashboard</NavLink>
-              </>
+            {isLoggedIn ? (
+              <div className="flex items-center space-x-4">
+                <NavLink 
+                  to="/profile" 
+                  className="text-center px-4 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors duration-200"
+                >
+                  Profile
+                </NavLink>
+                <button
+                  onClick={handleLogout}
+                  className="bg-transparent text-green-600 px-6 py-2 border-2 border-green-500 rounded-md hover:bg-green-500 hover:text-white transition-all duration-200"
+                >
+                  Logout
+                </button>
+              </div>
             ) : (
               <div className="grid grid-cols-2 gap-4 mt-4">
                 <NavLink 

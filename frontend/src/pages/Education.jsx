@@ -1,43 +1,53 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import EducationCard from '../components/EducationCard';
 
 export default function Education() {
-  // This would come from backend in future
-  const articles = [
-    {
-      id: 1,
-      title: "Understanding E-Waste: A Comprehensive Guide",
-      description: "Learn about different types of electronic waste and their environmental impact. Discover how proper disposal methods can make a difference.",
-      image: "https://images.unsplash.com/photo-1550009158-9ebf69173e03?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
-      category: "Basics",
-      readTime: 5
-    },
-    {
-      id: 2,
-      title: "Best Practices for E-Waste Recycling",
-      description: "Expert tips on how to properly recycle different electronic devices. Learn about data security and preparation steps.",
-      image: "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
-      category: "How-to",
-      readTime: 8
-    },
-    {
-      id: 3,
-      title: "Environmental Impact of E-Waste",
-      description: "Understand how improper e-waste disposal affects our environment and what we can do to minimize the impact.",
-      image: "https://images.unsplash.com/photo-1611284446314-60a58ac0deb9?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
-      category: "Environment",
-      readTime: 6
-    },
-    // Add more articles as needed
-  ];
-
+  const [articles, setArticles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('All');
 
-  const categories = ['All', 'Basics', 'How-to', 'Environment', 'Tips'];
+  useEffect(() => {
+    fetchEducationArticles();
+  }, []);
+
+  const fetchEducationArticles = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/education');
+      if (!response.ok) {
+        throw new Error('Failed to fetch articles');
+      }
+      const data = await response.json();
+      setArticles(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Get unique categories from articles
+  const categories = ['All', ...new Set(articles.map(article => article.category))];
 
   const filteredArticles = selectedCategory === 'All' 
     ? articles 
     : articles.filter(article => article.category === selectedCategory);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg text-gray-600">Loading articles...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg text-red-600">Error: {error}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -73,9 +83,15 @@ export default function Education() {
 
         {/* Articles Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredArticles.map(article => (
-            <EducationCard key={article.id} {...article} />
-          ))}
+          {filteredArticles.length > 0 ? (
+            filteredArticles.map(article => (
+              <EducationCard key={article._id} {...article} />
+            ))
+          ) : (
+            <div className="col-span-full text-center py-12 text-gray-500">
+              No articles found for this category.
+            </div>
+          )}
         </div>
       </div>
     </div>

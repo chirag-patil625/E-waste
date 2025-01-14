@@ -9,16 +9,16 @@ const JWT_SECRET = process.env.JWT_SECRET || 'thisisaverylongstringthatshouldbeu
 
 
 const validateSignup = [
-    body('fullName').trim().isLength({ min: 3 }).escape(),
-    body('email').isEmail().normalizeEmail(),
-    body('password').isLength({ min: 8 }),
+    body('fullName').trim().isLength({ min: 3 }).withMessage('Full name must be at least 3 characters long'),
+    body('email').isEmail().withMessage('Please enter a valid email'),
+    body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters long'),
     body('confirmPassword').custom((value, { req }) => {
         if (value !== req.body.password) {
             throw new Error('Password confirmation does not match password');
         }
         return true;
     }),
-    body('phone').notEmpty()
+    body('phone').notEmpty().withMessage('Phone number is required')
 ];
 
 const validateLogin = [
@@ -33,8 +33,7 @@ router.post('/signup', validateSignup, async (req, res) => {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
             return res.status(400).json({ 
-                errors: errors.array(),
-                message: 'Validation failed'
+                message: errors.array()[0].msg
             });
         }
 
@@ -55,13 +54,6 @@ router.post('/signup', validateSignup, async (req, res) => {
         });
 
         await user.save();
-
-        // Create default profile
-        const profile = new Profile({
-            userId: user._id,
-            name: user.fullName
-        });
-        await profile.save();
 
         const token = jwt.sign(
             { id: user._id },

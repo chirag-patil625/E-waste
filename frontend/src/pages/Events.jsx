@@ -1,50 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import EventCard from '../components/EventCard';
 
 export default function Events() {
-  // This would come from backend in future
-  const events = [
-    {
-      id: 1,
-      title: "E-Waste Collection Drive",
-      date: "March 15, 2024",
-      location: "Central Park, Mumbai",
-      description: "Join us for our monthly e-waste collection drive. Bring your old electronics for responsible recycling.",
-      image: "https://images.unsplash.com/photo-1576615278693-f8e095e37e01?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
-      category: "Collection Drive",
-      registrationLink: "#"
-    },
-    {
-      id: 2,
-      title: "Electronics Recycling Workshop",
-      date: "March 20, 2024",
-      location: "Tech Hub, Delhi",
-      description: "Learn about electronics recycling processes and how to prepare your devices for recycling.",
-      image: "https://images.unsplash.com/photo-1523741543316-beb7fc7023d8?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
-      category: "Workshop",
-      registrationLink: "#"
-    },
-    {
-      id: 3,
-      title: "Sustainability Conference",
-      date: "April 5, 2024",
-      location: "Green Convention Center, Bangalore",
-      description: "A conference focused on sustainable e-waste management practices and future technologies.",
-      image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
-      category: "Conference",
-      registrationLink: "#"
-    }
-  ];
-
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const categories = ['All', 'Collection Drive', 'Workshop', 'Conference', 'Awareness'];
+
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+
+  const fetchEvents = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/events');
+      if (!response.ok) {
+        throw new Error('Failed to fetch events');
+      }
+      const data = await response.json();
+      setEvents(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Get unique categories from events
+  const categories = ['All', ...new Set(events.map(event => event.category))];
 
   const filteredEvents = selectedCategory === 'All'
     ? events
     : events.filter(event => event.category === selectedCategory);
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg text-gray-600">Loading events...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg text-red-600">Error: {error}</div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 ">
+    <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-teal-600 to-emerald-600 text-white py-16 mb-12">
         <div className="container mx-auto px-4">
@@ -77,9 +83,15 @@ export default function Events() {
 
         {/* Events Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredEvents.map(event => (
-            <EventCard key={event.id} {...event} />
-          ))}
+          {filteredEvents.length > 0 ? (
+            filteredEvents.map(event => (
+              <EventCard key={event._id} {...event} />
+            ))
+          ) : (
+            <div className="col-span-full text-center py-12 text-gray-500">
+              No events found for this category.
+            </div>
+          )}
         </div>
 
         {/* Newsletter Section */}

@@ -1,4 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast'; // Update this import
 
 const RecycleSteps = ({ number, title, description }) => (
     <div className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow">
@@ -20,14 +23,21 @@ const AcceptedItem = ({ name, details }) => (
 );
 
 const RecycleForm = () => {
+    const { isLoggedIn } = useAuth();
+    const navigate = useNavigate();
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
     const [formData, setFormData] = useState({
+        name: '',
         deviceType: '',
         condition: '',
         quantity: '1',
         description: '',
-        name: '',
-        email: '',
-        phone: '',
+        submittedBy: {
+            name: '',
+            email: '',
+            phone: ''
+        },
         address: {
             street: '',
             city: '',
@@ -36,6 +46,36 @@ const RecycleForm = () => {
             country: ''
         }
     });
+
+    // Add new useEffect to fetch user profile data
+    useEffect(() => {
+        if (isLoggedIn) {
+            fetchUserProfile();
+        }
+    }, [isLoggedIn]);
+
+    const fetchUserProfile = async () => {
+        try {
+            const response = await fetch('http://localhost:5000/api/profile', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('userToken')}`
+                }
+            });
+            const data = await response.json();
+            if (response.ok) {
+                setFormData(prev => ({
+                    ...prev,
+                    submittedBy: {
+                        name: data.user.fullName,
+                        email: data.user.email,
+                        phone: data.user.phone
+                    }
+                }));
+            }
+        } catch (error) {
+            console.error('Error fetching profile:', error);
+        }
+    };
 
     const [images, setImages] = useState([]);
     const [imagePreview, setImagePreview] = useState([]);
@@ -51,6 +91,15 @@ const RecycleForm = () => {
                     [addressField]: value
                 }
             }));
+        } else if (name.startsWith('submittedBy.')) {
+            const submittedByField = name.split('.')[1];
+            setFormData(prev => ({
+                ...prev,
+                submittedBy: {
+                    ...prev.submittedBy,
+                    [submittedByField]: value
+                }
+            }));
         } else {
             setFormData(prev => ({
                 ...prev,
@@ -62,7 +111,7 @@ const RecycleForm = () => {
     const handleImageChange = (e) => {
         const files = Array.from(e.target.files);
         if (files.length > 5) {
-            alert('You can only upload up to 5 images');
+            toast.error("You can only upload up to 5 images");
             return;
         }
         
@@ -86,65 +135,76 @@ const RecycleForm = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
-        const formDataToSend = new FormData();
-        
-        // Append form data
-        Object.keys(formData).forEach(key => {
-            if (key === 'address') {
-                Object.keys(formData.address).forEach(addressKey => {
-                    formDataToSend.append(`address[${addressKey}]`, formData.address[addressKey]);
-                });
-            } else {
-                formDataToSend.append(key, formData[key]);
-            }
-        });
+        if (!isLoggedIn) {
+            navigate('/login');
+            return;
+        }
 
-        // Append images
-        images.forEach((image, index) => {
-            formDataToSend.append('images', image);
-        });
+        setLoading(true);
+        setError('');
 
         try {
-            // TODO: Add your API endpoint
-            const response = await fetch('/api/recycle', {
-                method: 'POST',
-                body: formDataToSend,
+            const formDataToSend = new FormData();
+
+            // Append basic fields
+            formDataToSend.append('deviceType', formData.deviceType);
+            formDataToSend.append('condition', formData.condition);
+            formDataToSend.append('quantity', formData.quantity);
+            formDataToSend.append('description', formData.description);
+
+            // Append user and address info as JSON strings
+            formDataToSend.append('submittedBy', JSON.stringify({
+                name: formData.submittedBy.name,
+                email: formData.submittedBy.email,
+                phone: formData.submittedBy.phone
+            }));
+
+            formDataToSend.append('address', JSON.stringify(formData.address));
+
+            // Append images if any
+            images.forEach((image) => {
+                formDataToSend.append('images', image);
             });
 
-            if (response.ok) {
-                alert('Thank you for your submission! We will contact you soon.');
-                // Reset form
-                setFormData({
-                    deviceType: '',
-                    condition: '',
-                    quantity: '1',
-                    description: '',
-                    name: '',
-                    email: '',
-                    phone: '',
-                    address: {
-                        street: '',
-                        city: '',
-                        state: '',
-                        zipCode: '',
-                        country: ''
-                    }
-                });
-                setImages([]);
-                setImagePreview([]);
-            } else {
-                throw new Error('Submission failed');
+            const token = localStorage.getItem('userToken');
+            if (!token) {
+                throw new Error('Authentication required');
             }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Failed to submit form. Please try again.');
+
+            const response = await fetch('http://localhost:5000/api/recycle', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formDataToSend
+            });
+
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.message || 'Failed to submit request');
+            }
+
+            toast.success('Recycling request submitted successfully!');
+            navigate('/history');
+
+        } catch (err) {
+            toast.error(err.message || 'Failed to submit request');
+            setError(err.message);
+            console.error('Submission error:', err);
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
         <div className="bg-white rounded-lg shadow-lg p-8">
             <h2 className="text-2xl font-bold text-gray-800 mb-6">Schedule a Pickup</h2>
+            {error && (
+                <div className="mb-4 p-4 bg-red-50 text-red-600 rounded-lg">
+                    {error}
+                </div>
+            )}
             <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Device Information */}
                 <div className="grid md:grid-cols-2 gap-6">
@@ -261,36 +321,30 @@ const RecycleForm = () => {
                         <label className="block mb-2">Full Name</label>
                         <input
                             type="text"
-                            name="name"
-                            value={formData.name}
-                            onChange={handleChange}
-                            className="w-full p-2 border rounded"
-                            required
+                            name="submittedBy.name"
+                            value={formData.submittedBy.name}
+                            className="w-full p-2 border rounded bg-gray-50"
+                            readOnly
                         />
                     </div>
                     <div>
                         <label className="block mb-2">Email</label>
                         <input
                             type="email"
-                            name="email"
-                            value={formData.email}
-                            onChange={handleChange}
-                            className="w-full p-2 border rounded"
-                            required
+                            name="submittedBy.email"
+                            value={formData.submittedBy.email}
+                            className="w-full p-2 border rounded bg-gray-50"
+                            readOnly
                         />
                     </div>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-6">
                     <div>
                         <label className="block mb-2">Phone</label>
                         <input
                             type="tel"
-                            name="phone"
-                            value={formData.phone}
-                            onChange={handleChange}
-                            className="w-full p-2 border rounded"
-                            required
+                            name="submittedBy.phone"
+                            value={formData.submittedBy.phone}
+                            className="w-full p-2 border rounded bg-gray-50"
+                            readOnly
                         />
                     </div>
                 </div>
@@ -361,9 +415,10 @@ const RecycleForm = () => {
                 <div className="text-center">
                     <button
                         type="submit"
-                        className="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 transition-colors"
+                        disabled={loading}
+                        className="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400"
                     >
-                        Submit Request
+                        {loading ? 'Submitting...' : 'Submit Request'}
                     </button>
                 </div>
             </form>
@@ -427,11 +482,7 @@ const Recycle = () => {
                     <h2 className="text-2xl font-bold text-gray-800 mb-8 text-center">What We Accept</h2>
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {acceptedItems.map((item, index) => (
-                            <AcceptedItem
-                                key={index}
-                                name={item.name}
-                                details={item.details}
-                            />
+                            <AcceptedItem key={index} {...item} />
                         ))}
                     </div>
                 </div>
@@ -458,7 +509,7 @@ const Recycle = () => {
                     </div>
                 </div>
 
-                {/* Replace CTA section with Form */}
+                {/* Form Section */}
                 <div className="mb-16">
                     <RecycleForm />
                 </div>

@@ -2,36 +2,37 @@ const express = require('express');
 const router = express.Router();
 const Recycle = require('../models/Recycle');
 const upload = require('../middleware/upload');
+const auth = require('../middleware/authenticateToken');
 
-// POST route to create a new item with images
-router.post('/recycle', upload.array('images', 5), async (req, res) => {
+// Add auth middleware to the route
+router.post('/recycle', auth, upload.array('images', 5), async (req, res) => {
     try {
-        const { name, deviceType, condition, quantity, description, submittedBy, address } = req.body;
+        const { deviceType, condition, quantity, description, submittedBy, address } = req.body;
 
-        // Process uploaded images
-        const images = req.files.map(file => ({
-            data: file.buffer,
-            contentType: file.mimetype
-        }));
-
-        // Create new item with images
+        // Create new item
         const newRecycle = new Recycle({
-            name,
+            name: JSON.parse(submittedBy).name, // Get name from submittedBy
             deviceType,
             condition,
             quantity,
             description,
-            images,
-            submittedBy: JSON.parse(submittedBy), // Parse JSON string from form-data
-            address: JSON.parse(address), // Parse JSON string from form-data
+            submittedBy: JSON.parse(submittedBy),
+            address: JSON.parse(address),
+            images: req.files ? req.files.map(file => ({
+                data: file.buffer,
+                contentType: file.mimetype
+            })) : []
         });
 
         await newRecycle.save();
-        res.status(201).json({ message: 'Item created successfully', itemId: newRecycle._id });
+        res.status(201).json({ 
+            message: 'Recycling request submitted successfully',
+            itemId: newRecycle._id 
+        });
 
     } catch (error) {
-        console.error('Error creating item:', error);
-        res.status(500).json({ error: error.message });
+        console.error('Error creating recycle request:', error);
+        res.status(500).json({ message: error.message });
     }
 });
 

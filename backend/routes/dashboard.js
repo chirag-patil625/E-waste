@@ -8,43 +8,47 @@ const auth = require('../middleware/authenticateToken');
 // Get dashboard stats
 router.get('/stats', auth, async (req, res) => {
     try {
-        if (!mongoose.models.Dashboard) {
-            return res.status(500).json({ message: "Dashboard model not properly initialized" });
-        }
-        
-        // Get or create dashboard
-        let dashboard = await Dashboard.findOne({ userId: req.user.id });
+        let dashboard = await Dashboard.findOne({
+            $or: [
+                { userId: req.user.id },
+                { user: req.user.id }
+            ]
+        });
+
         if (!dashboard) {
-            dashboard = new Dashboard({ userId: req.user.id });
+            dashboard = new Dashboard({ 
+                userId: req.user.id,
+                user: req.user.id,
+                eventsJoined: 0 
+            });
             await dashboard.save();
         }
 
-        // Calculate recycling stats
+        // Get recycling stats
         const recycleStats = await Recycle.aggregate([
-            { $match: { 'submittedBy.email': req.user.email, status: 'approved' } },
-            { $group: {
-                _id: null,
-                totalItems: { $sum: '$quantity' },
-                totalTokens: { $sum: '$tokens' }
-            }}
+            { 
+                $match: { 
+                    'submittedBy.email': req.user.email 
+                } 
+            },
+            { 
+                $group: {
+                    _id: null,
+                    itemsRecycled: { $sum: '$quantity' },
+                    totalPoints: { $sum: '$tokens' }
+                }
+            }
         ]);
 
-        // Update dashboard with latest stats
-        if (recycleStats.length > 0) {
-            dashboard.totalPoints = recycleStats[0].totalTokens;
-            dashboard.itemsRecycled = recycleStats[0].totalItems;
-            await dashboard.save();
-        }
+        const stats = {
+            totalPoints: recycleStats[0]?.totalPoints || 0,
+            itemsRecycled: recycleStats[0]?.itemsRecycled || 0,
+            eventsJoined: dashboard.eventsJoined
+        };
 
-        res.json({
-            stats: {
-                totalPoints: dashboard.totalPoints,
-                itemsRecycled: dashboard.itemsRecycled,
-                eventsJoined: dashboard.eventsJoined
-            }
-        });
+        res.json({ stats });
     } catch (error) {
-        console.error('Error in dashboard:', error);
+        console.error('Error fetching dashboard stats:', error);
         res.status(500).json({ message: error.message });
     }
 });
@@ -52,16 +56,44 @@ router.get('/stats', auth, async (req, res) => {
 // Increment events joined (to be called when user registers for an event)
 router.post('/increment-event', auth, async (req, res) => {
     try {
-        const dashboard = await Dashboard.findOneAndUpdate(
-            { userId: req.user.id },
-            { $inc: { eventsJoined: 1 } },
-            { new: true, upsert: true }
+        console.log('User ID:', req.user.id); // Add logging
+
+        let dashboard = await Dashboard.findOneAndUpdate(
+            { 
+                $or: [
+                    { userId: req.user.id },
+                    { user: req.user.id }
+                ]
+            },
+            { 
+                $inc: { eventsJoined: 1 },
+                $setOnInsert: { 
+                    userId: req.user.id,
+                    user: req.user.id
+                }
+            },
+            { 
+                new: true, 
+                upsert: true 
+            }
         );
 
-        res.json({ eventsJoined: dashboard.eventsJoined });
+        console.log('Updated Dashboard:', dashboard);
+
+        if (!dashboard) {
+            throw new Error('Failed to update dashboard');
+        }
+
+        res.json({ 
+            success: true,
+            eventsJoined: dashboard.eventsJoined
+        });
     } catch (error) {
-        console.error('Error updating events joined:', error);
-        res.status(500).json({ message: error.message });
+        console.error('Error incrementing events:', error);
+        res.status(500).json({ 
+            success: false,
+            message: error.message || 'Failed to increment events'
+        });
     }
 });
 

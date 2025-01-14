@@ -1,9 +1,9 @@
 import React from 'react';
+import reportWebVitals from './reportWebVitals';
 import ReactDOM from 'react-dom/client';
 import './index.css';
-import App from './App';
-import reportWebVitals from './reportWebVitals';
-import { createBrowserRouter, RouterProvider, Route } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
 import BaseLayout from './BaseLayout';
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -14,12 +14,12 @@ import AboutUs from './pages/AboutUs';
 import Education from './pages/Education';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
-import UpdateProfile from './pages/UpdateProfile';
 import History from './pages/History';
 import Rewards from './pages/Rewards';
 import Admin from './pages/Admin';
 import AdminLayout from './AdminLayout';
 import Recycle from './pages/Recycle';
+import { Toaster } from 'react-hot-toast';
 
 const router = createBrowserRouter([
   {
@@ -77,10 +77,6 @@ const router = createBrowserRouter([
         element: <Profile />
       },
       {
-        path: '/update-profile',
-        element: <UpdateProfile />
-      },
-      {
         path: '/history',
         element: <History /> 
       },
@@ -95,7 +91,29 @@ const router = createBrowserRouter([
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <RouterProvider router={router}/>
+    <AuthProvider>
+      <RouterProvider router={router} />
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#333',
+            color: '#fff',
+          },
+          success: {
+            style: {
+              background: '#22c55e',
+            },
+          },
+          error: {
+            style: {
+              background: '#ef4444',
+            },
+          },
+        }}
+      />
+    </AuthProvider>
   </React.StrictMode>
 );
 

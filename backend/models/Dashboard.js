@@ -2,18 +2,13 @@ const mongoose = require('mongoose');
 
 const dashboardSchema = new mongoose.Schema({
     userId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+        type: String,  // Keep string type for direct user ID
         required: true,
         unique: true
     },
-    totalPoints: {
-        type: Number,
-        default: 0
-    },
-    itemsRecycled: {
-        type: Number,
-        default: 0
+    user: {
+        type: mongoose.Schema.Types.ObjectId,  // Keep ObjectId reference
+        ref: 'User'
     },
     eventsJoined: {
         type: Number,
@@ -21,6 +16,4 @@ const dashboardSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-// Make sure to name the model 'Dashboard' explicitly
-const Dashboard = mongoose.model('Dashboard', dashboardSchema);
-module.exports = Dashboard;  // Export the model directly
+module.exports = mongoose.model('Dashboard', dashboardSchema);

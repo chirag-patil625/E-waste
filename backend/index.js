@@ -22,13 +22,13 @@ app.use(express.json());
 app.get('/', (req, res) => {
     res.send('Welcome to the API!');
   });
-app.use('/api/auth', authRoutes);
+app.use('/auth', authRoutes);
 app.use('/api', eventsRoutes);
 app.use('/admin', adminRoutes);
 app.use('/api', educationRoutes);
 app.use('/api', recycleRoutes);
 app.use('/api', historyRoutes);
-app.use('/api/profile', profileRoutes);
+app.use('/api', profileRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
 app.listen(port, () => {
