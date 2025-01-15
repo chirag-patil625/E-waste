@@ -5,7 +5,7 @@ const eventSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    date:{
+    date: {
         type: String,
         required: true
     },
@@ -14,8 +14,8 @@ const eventSchema = new mongoose.Schema({
         required: true
     },
     image: {
-        type: String,
-        required: true  
+        data: Buffer,
+        contentType: String
     },
     category: {
         type: String,
@@ -25,7 +25,7 @@ const eventSchema = new mongoose.Schema({
         type: String,
         required: true
     }
-});
+}, { timestamps: true });
 
-const Event = mongoose.model('Event', eventSchema)
+const Event = mongoose.model('Event', eventSchema);
 module.exports = Event;

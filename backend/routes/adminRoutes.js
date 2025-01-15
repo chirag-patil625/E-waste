@@ -8,6 +8,7 @@ const Event = require('../models/Events');
 const Education = require('../models/Education');
 const Recycle = require('../models/Recycle');
 const User = require('../models/User');  // Add this line
+const upload = require('../middleware/upload');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'thisisaverylongstringthatshouldbeusedasasecret';
 
@@ -37,54 +38,58 @@ router.post('/login', async (req, res) => {
     }
 });
 
-router.post('/addEvent', adminAuth, async (req, res) => {
+// Add new event with image
+router.post('/addEvent', adminAuth, upload.single('image'), async (req, res) => {
     try {
-        const { title, description, date, image, category, registrationLink } = req.body;
+        const { title, description, date, category, registrationLink } = req.body;
         
-        if (!title || !description || !date || !image || !category || !registrationLink) {
-            return res.status(400).json({ error: 'All fields are required' });
+        if (!req.file) {
+            return res.status(400).json({ error: 'Image is required' });
         }
 
         const newEvent = new Event({
             title,
             description,
             date,
-            image,
             category,
-            registrationLink
+            registrationLink,
+            image: {
+                data: req.file.buffer,
+                contentType: req.file.mimetype
+            }
         });
 
         await newEvent.save();
-        res.status(201).json({ message: 'Event created successfully', event: newEvent });
+        res.status(201).json({ message: 'Event created successfully' });
     } catch (error) {
         res.status(500).json({ error: 'Failed to create event' });
     }
 });
 
-router.post('/addEducation', adminAuth, async (req, res) => {
+// Add new education content with image
+router.post('/addEducation', adminAuth, upload.single('image'), async (req, res) => {
     try {
-        const { tittle, description, image, category, articleLink } = req.body;
+        const { title, description, category, articleLink } = req.body;
         
-        if (!tittle || !description || !image || !category || !articleLink) {
-            return res.status(400).json({ error: 'All fields are required' });
+        if (!req.file) {
+            return res.status(400).json({ error: 'Image is required' });
         }
 
         const newEducation = new Education({
-            tittle,
+            title,
             description,
-            image,
             category,
-            articleLink
+            articleLink,
+            image: {
+                data: req.file.buffer,
+                contentType: req.file.mimetype
+            }
         });
 
         await newEducation.save();
-        res.status(201).json({ 
-            message: 'Education article created successfully', 
-            education: newEducation 
-        });
+        res.status(201).json({ message: 'Education content created successfully' });
     } catch (error) {
-        console.error('Error creating education article:', error);
-        res.status(500).json({ error: 'Failed to create education article' });
+        res.status(500).json({ error: 'Failed to create education content' });
     }
 });
 
@@ -172,6 +177,26 @@ router.patch('/recycleRequests/:id', adminAuth, async (req, res) => {
     } catch (error) {
         console.error('Error updating recycle request:', error);
         res.status(500).json({ error: 'Failed to update recycle request' });
+    }
+});
+
+// Get all education content
+router.get('/education', adminAuth, async (req, res) => {
+    try {
+        const education = await Education.find({});
+        res.json(education);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch education content' });
+    }
+});
+
+// Get all events
+router.get('/events', adminAuth, async (req, res) => {
+    try {
+        const events = await Event.find({});
+        res.json(events);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch events' });
     }
 });
 

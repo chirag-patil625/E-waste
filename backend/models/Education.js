@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const educationSchema = new mongoose.Schema({
-    tittle: {
+    title: {
         type: String,
         required: true
     },
@@ -10,8 +10,8 @@ const educationSchema = new mongoose.Schema({
         required: true
     },
     image: {
-        type: String,
-        required: true
+        data: Buffer,
+        contentType: String
     },
     category: {
         type: String,
@@ -20,9 +20,8 @@ const educationSchema = new mongoose.Schema({
     articleLink: {
         type: String,
         required: true
-    },
-
-});
+    }
+}, { timestamps: true });
 
 const Education = mongoose.model('Education', educationSchema);
 module.exports = Education;
