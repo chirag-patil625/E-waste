@@ -23,7 +23,7 @@ const EventCard = ({ title, description, image, category, registrationLink, _id 
           'Authorization': `Bearer ${localStorage.getItem('userToken')}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ eventId: _id }) // Add event ID if needed
+        body: JSON.stringify({ eventId: _id })
       });
 
       const data = await response.json();
@@ -32,7 +32,6 @@ const EventCard = ({ title, description, image, category, registrationLink, _id 
         throw new Error(data.message || 'Failed to register for event');
       }
 
-      // If successful, open registration link and show success message
       if (registrationLink) {
         window.open(registrationLink, '_blank');
       }

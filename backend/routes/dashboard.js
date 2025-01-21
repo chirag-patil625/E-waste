@@ -1,11 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const mongoose = require('mongoose');  // Add this line
+const mongoose = require('mongoose'); 
 const Dashboard = require('../models/Dashboard');
 const Recycle = require('../models/Recycle');
 const auth = require('../middleware/authenticateToken');
 
-// Get dashboard stats
 router.get('/stats', auth, async (req, res) => {
     try {
         let dashboard = await Dashboard.findOne({
@@ -24,7 +23,6 @@ router.get('/stats', auth, async (req, res) => {
             await dashboard.save();
         }
 
-        // Get recycling stats
         const recycleStats = await Recycle.aggregate([
             { 
                 $match: { 
@@ -53,7 +51,6 @@ router.get('/stats', auth, async (req, res) => {
     }
 });
 
-// Increment events joined (to be called when user registers for an event)
 router.post('/increment-event', auth, async (req, res) => {
     try {
         console.log('User ID:', req.user.id); // Add logging
@@ -97,4 +94,4 @@ router.post('/increment-event', auth, async (req, res) => {
     }
 });
 
-module.exports = router;  // This line is crucial
+module.exports = router;

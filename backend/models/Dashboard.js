@@ -2,12 +2,12 @@ const mongoose = require('mongoose');
 
 const dashboardSchema = new mongoose.Schema({
     userId: {
-        type: String,  // Keep string type for direct user ID
+        type: String,  
         required: true,
         unique: true
     },
     user: {
-        type: mongoose.Schema.Types.ObjectId,  // Keep ObjectId reference
+        type: mongoose.Schema.Types.ObjectId, 
         ref: 'User'
     },
     eventsJoined: {

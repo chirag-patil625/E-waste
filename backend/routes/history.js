@@ -3,7 +3,6 @@ const router = express.Router();
 const Recycle = require('../models/Recycle');
 const auth = require('../middleware/authenticateToken');
 
-// Get user's history
 router.get('/history', auth, async (req, res) => {
     try {
         const history = await Recycle.find({ 'submittedBy.email': req.user.email })
@@ -18,26 +17,22 @@ router.get('/history', auth, async (req, res) => {
     }
 });
 
-// Update request status (cancel only)
 router.patch('/history/:id', auth, async (req, res) => {
     try {
         const { status } = req.body;
         console.log('Request ID:', req.params.id);
         console.log('User email:', req.user.email);
         console.log('Requested status:', status);
-        
-        // First check if the request exists
+
         const existingRequest = await Recycle.findById(req.params.id);
         if (!existingRequest) {
             return res.status(404).json({ error: 'Request not found' });
         }
 
-        // Check if the request belongs to the user
         if (existingRequest.submittedBy.email !== req.user.email) {
             return res.status(403).json({ error: 'Not authorized to cancel this request' });
         }
 
-        // Check if the request is in pending status
         if (existingRequest.status !== 'pending') {
             return res.status(400).json({ error: 'Only pending requests can be cancelled' });
         }

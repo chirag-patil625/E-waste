@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import defaultAvatar from '../assets/default-avatar.png'; // Add this image to your assets
+import defaultAvatar from '../assets/default-avatar.png'; 
 
 export default function Profile() {
   const { isLoggedIn } = useAuth();
@@ -13,7 +13,6 @@ export default function Profile() {
     phone: ''
   });
   
-  // Add password change state
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordData, setPasswordData] = useState({
     oldPassword: '',
@@ -112,7 +111,7 @@ export default function Profile() {
 
       const result = await response.json();
       if (response.ok) {
-        fetchProfileData(); // Refresh profile data after update
+        fetchProfileData(); 
       } else {
         throw new Error(result.message);
       }

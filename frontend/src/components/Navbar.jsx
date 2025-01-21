@@ -9,7 +9,6 @@ const Navbar = () => {
 
   const handleLogout = () => {
     logout();
-    // Optional: navigate to home or login page
   };
 
   const activeClassName = "text-green-500 font-bold border-b-2 border-green-500 pb-1";

@@ -10,7 +10,7 @@ const recycleRoutes = require('./routes/recycle');
 const historyRoutes = require('./routes/history');
 const profileRoutes = require('./routes/profile');
 const dashboardRoutes = require('./routes/dashboard');
-
+const rewardRoutes = require('./routes/reward');
 const app = express();
 const port = 5000;
 
@@ -30,6 +30,7 @@ app.use('/api', recycleRoutes);
 app.use('/api', historyRoutes);
 app.use('/api', profileRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api', rewardRoutes);
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);

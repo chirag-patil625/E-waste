@@ -5,7 +5,6 @@ const Recycle = require('../models/Recycle');
 const bcrypt = require('bcryptjs');
 const auth = require('../middleware/authenticateToken');
 
-// Get user profile
 router.get('/profile', auth, async (req, res) => {
     try {
         const user = await User.findById(req.user.id).select('-password');
@@ -20,7 +19,6 @@ router.get('/profile', auth, async (req, res) => {
     }
 });
 
-// Update profile
 router.put('/profile', auth, async (req, res) => {
     try {
         const { fullName, phone } = req.body;
@@ -49,7 +47,6 @@ router.put('/profile', auth, async (req, res) => {
     }
 });
 
-// Change password
 router.put('/change-password', auth, async (req, res) => {
     try {
         const { oldPassword, newPassword } = req.body;
@@ -75,7 +72,6 @@ router.put('/change-password', auth, async (req, res) => {
     }
 });
 
-// Get recycling history
 // router.get('/recycling-history', auth, async (req, res) => {
 //     try {
 //         const history = await Recycle.find({ 

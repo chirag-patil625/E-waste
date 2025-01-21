@@ -26,7 +26,6 @@ export default function Education() {
     }
   };
 
-  // Get unique categories from articles
   const categories = ['All', ...new Set(articles.map(article => article.category))];
 
   const filteredArticles = selectedCategory === 'All' 

@@ -26,7 +26,6 @@ export default function Events() {
     }
   };
 
-  // Get unique categories from events
   const categories = ['All', ...new Set(events.map(event => event.category))];
 
   const filteredEvents = selectedCategory === 'All'

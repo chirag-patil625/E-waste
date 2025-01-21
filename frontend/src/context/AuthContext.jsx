@@ -19,7 +19,6 @@ export const AuthProvider = ({ children }) => {
     }
 
     try {
-      // Verify token is valid by making a request to profile endpoint
       const response = await fetch('http://localhost:5000/api/profile', {
         headers: {
           'Authorization': `Bearer ${token}`

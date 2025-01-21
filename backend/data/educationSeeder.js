@@ -27,15 +27,15 @@ const education = [
 ];
 
   const insertEducation = async () => {
-    await connectToMongo(); // Connect to MongoDB
+    await connectToMongo(); 
 
     try {
-        await Education.insertMany(education); // Insert the fruits data
+        await Education.insertMany(education); 
         console.log('Education data inserted successfully!');
     } catch (err) {
         console.error('Error inserting Education data:', err.message);
     } finally {
-        mongoose.connection.close(); // Close the connection after insertion
+        mongoose.connection.close();
     }
 };
 

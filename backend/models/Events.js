@@ -5,17 +5,13 @@ const eventSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    date: {
-        type: String,
-        required: true
-    },
     description: {
         type: String,
         required: true
     },
-    image: {
-        data: Buffer,
-        contentType: String
+    date: {
+        type: Date,
+        required: true
     },
     category: {
         type: String,
@@ -24,8 +20,11 @@ const eventSchema = new mongoose.Schema({
     registrationLink: {
         type: String,
         required: true
+    },
+    imageUrl: {
+        type: String,
+        required: true
     }
 }, { timestamps: true });
 
-const Event = mongoose.model('Event', eventSchema);
-module.exports = Event;
+module.exports = mongoose.model('Event', eventSchema);

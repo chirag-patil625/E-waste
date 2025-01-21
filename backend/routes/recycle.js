@@ -4,14 +4,12 @@ const Recycle = require('../models/Recycle');
 const upload = require('../middleware/upload');
 const auth = require('../middleware/authenticateToken');
 
-// Add auth middleware to the route
 router.post('/recycle', auth, upload.array('images', 5), async (req, res) => {
     try {
         const { deviceType, condition, quantity, description, submittedBy, address } = req.body;
 
-        // Create new item
         const newRecycle = new Recycle({
-            name: JSON.parse(submittedBy).name, // Get name from submittedBy
+            name: JSON.parse(submittedBy).name,
             deviceType,
             condition,
             quantity,
@@ -36,7 +34,6 @@ router.post('/recycle', auth, upload.array('images', 5), async (req, res) => {
     }
 });
 
-// GET route to retrieve an item with images
 router.get('/recycle/:id', async (req, res) => {
     try {
         const recycle = await Recycle.findById(req.params.id);

@@ -15,15 +15,11 @@ const seedAdmin = async () => {
     try {
         await connectToMongo();
         console.log('Connected to MongoDB...');
-
-        // Check if admin already exists
         const existingAdmin = await Admin.findOne({ username: "admin" });
         if (existingAdmin) {
             console.log('Admin already exists, skipping seeding.');
             return;
         }
-
-        // Hash the password before saving
         const hashedAdmins = await Promise.all(
             admins.map(async (admin) => ({
                 ...admin,
@@ -42,6 +38,4 @@ const seedAdmin = async () => {
         process.exit(0);
     }
 };
-
-// Execute the seeder
 seedAdmin();

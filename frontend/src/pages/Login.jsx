@@ -39,8 +39,8 @@ export default function Login() {
         throw new Error(data.message || 'Something went wrong');
       }
 
-      login(data.token); // Use login function from AuthContext
-      navigate('/'); // Change this to redirect to profile
+      login(data.token);
+      navigate('/'); 
     } catch (err) {
       setError(err.message);
     } finally {

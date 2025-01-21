@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import aboutImage from '../assets/about.jpg'; // Make sure this image exists
+import aboutImage from '../assets/about.jpg'; 
 
 export default function AboutUs() {
   return (

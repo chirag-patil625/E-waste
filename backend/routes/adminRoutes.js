@@ -38,13 +38,12 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// Add new event with image
-router.post('/addEvent', adminAuth, upload.single('image'), async (req, res) => {
+router.post('/addEvent', adminAuth, async (req, res) => {
     try {
-        const { title, description, date, category, registrationLink } = req.body;
+        const { title, description, date, category, registrationLink, imageUrl } = req.body;
         
-        if (!req.file) {
-            return res.status(400).json({ error: 'Image is required' });
+        if (!title || !description || !date || !category || !registrationLink || !imageUrl) {
+            return res.status(400).json({ error: 'All fields are required' });
         }
 
         const newEvent = new Event({
@@ -53,26 +52,23 @@ router.post('/addEvent', adminAuth, upload.single('image'), async (req, res) => 
             date,
             category,
             registrationLink,
-            image: {
-                data: req.file.buffer,
-                contentType: req.file.mimetype
-            }
+            imageUrl
         });
 
         await newEvent.save();
-        res.status(201).json({ message: 'Event created successfully' });
+        res.status(201).json({ message: 'Event created successfully', event: newEvent });
     } catch (error) {
-        res.status(500).json({ error: 'Failed to create event' });
+        console.error('Error creating event:', error);
+        res.status(500).json({ error: 'Failed to create event: ' + error.message });
     }
 });
 
-// Add new education content with image
-router.post('/addEducation', adminAuth, upload.single('image'), async (req, res) => {
+router.post('/addEducation', adminAuth, async (req, res) => {
     try {
-        const { title, description, category, articleLink } = req.body;
-        
-        if (!req.file) {
-            return res.status(400).json({ error: 'Image is required' });
+        const { title, description, category, articleLink, imageUrl } = req.body;
+
+        if (!title || !description || !category || !articleLink || !imageUrl) {
+            return res.status(400).json({ error: 'All fields are required' });
         }
 
         const newEducation = new Education({
@@ -80,16 +76,14 @@ router.post('/addEducation', adminAuth, upload.single('image'), async (req, res)
             description,
             category,
             articleLink,
-            image: {
-                data: req.file.buffer,
-                contentType: req.file.mimetype
-            }
+            imageUrl
         });
 
         await newEducation.save();
-        res.status(201).json({ message: 'Education content created successfully' });
+        res.status(201).json({ message: 'Education content created successfully', education: newEducation });
     } catch (error) {
-        res.status(500).json({ error: 'Failed to create education content' });
+        console.error('Error creating education content:', error);
+        res.status(500).json({ error: 'Failed to create education content: ' + error.message });
     }
 });
 
@@ -129,7 +123,6 @@ router.delete('/deleteEvent/:id', adminAuth, async (req, res) => {
     }
 });
 
-// Get all recycle requests
 router.get('/recycleRequests', adminAuth, async (req, res) => {
     try {
         const requests = await Recycle.find({})
@@ -142,7 +135,6 @@ router.get('/recycleRequests', adminAuth, async (req, res) => {
     }
 });
 
-// Update recycle request status and assign tokens
 router.patch('/recycleRequests/:id', adminAuth, async (req, res) => {
     try {
         const { status, tokens } = req.body;
@@ -180,7 +172,6 @@ router.patch('/recycleRequests/:id', adminAuth, async (req, res) => {
     }
 });
 
-// Get all education content
 router.get('/education', adminAuth, async (req, res) => {
     try {
         const education = await Education.find({});
@@ -190,7 +181,6 @@ router.get('/education', adminAuth, async (req, res) => {
     }
 });
 
-// Get all events
 router.get('/events', adminAuth, async (req, res) => {
     try {
         const events = await Event.find({});
@@ -200,13 +190,10 @@ router.get('/events', adminAuth, async (req, res) => {
     }
 });
 
-// Get admin dashboard stats
 router.get('/dashboard-stats', adminAuth, async (req, res) => {
     try {
-        // Get pending requests count
         const pendingRequests = await Recycle.countDocuments({ status: 'pending' });
         
-        // Get total users count
         const totalUsers = await User.countDocuments();
 
         res.json({

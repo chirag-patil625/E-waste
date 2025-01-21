@@ -57,7 +57,7 @@ export default function History() {
       }
 
       toast.success('Request cancelled successfully');
-      fetchHistory(); // Refresh the history
+      fetchHistory();
     } catch (error) {
       console.error('Error cancelling request:', error);
       toast.error(error.message);

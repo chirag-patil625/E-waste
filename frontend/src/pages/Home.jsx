@@ -1,7 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext'; 
 import aboutImage from '../assets/aboutimg.svg';
+
 export default function Home() {
+  const { isLoggedIn } = useAuth();
+
   return (
     <div className="min-h-screen relative">
       {/* Hero Section */}
@@ -15,10 +19,18 @@ export default function Home() {
               <p className="text-lg text-gray-600 mb-8">
                 Join us in creating a sustainable future by properly disposing of your electronic waste. Find nearby facilities, earn rewards, and make a difference.
               </p>
-              <div className="flex space-x-4">
+              <div className="flex flex-wrap gap-4">
                 <Link to="/find-facility" className="bg-green-500 text-white px-8 py-3 rounded-lg hover:bg-green-600 transition duration-300">
                   Find Facility
                 </Link>
+                {isLoggedIn && (
+                  <Link 
+                    to="/recycle" 
+                    className="bg-gradient-to-r from-green-400 to-emerald-500 text-white px-8 py-3 rounded-lg hover:from-green-500 hover:to-emerald-600 transition duration-300 animate-pulse hover:animate-none"
+                  >
+                    Recycle Now ♻️
+                  </Link>
+                )}
                 <Link to="/learn" className="border-2 border-green-500 text-green-500 px-8 py-3 rounded-lg hover:bg-green-500 hover:text-white transition duration-300">
                   Learn More
                 </Link>
@@ -29,7 +41,7 @@ export default function Home() {
                 src={aboutImage} 
                 alt="E-waste recycling" 
                 className="absolute right-10 h-[750px] object-contain z-10"
-                style={{ top: '-340px' }}  // Adjust this value to align vertically as needed
+                style={{ top: '-340px' }}  
               />
             </div>
           </div>

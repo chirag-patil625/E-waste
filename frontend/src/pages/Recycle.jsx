@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast'; // Update this import
+import toast from 'react-hot-toast';
 
 const RecycleSteps = ({ number, title, description }) => (
     <div className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow">
@@ -47,7 +47,6 @@ const RecycleForm = () => {
         }
     });
 
-    // Add new useEffect to fetch user profile data
     useEffect(() => {
         if (isLoggedIn) {
             fetchUserProfile();
@@ -128,7 +127,7 @@ const RecycleForm = () => {
         setImages(newImages);
 
         const newPreviews = [...imagePreview];
-        URL.revokeObjectURL(newPreviews[index]); // Clean up URL object
+        URL.revokeObjectURL(newPreviews[index]); 
         newPreviews.splice(index, 1);
         setImagePreview(newPreviews);
     };

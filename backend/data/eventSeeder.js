@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
-const Events = require('../models/Events'); // Import the Event model
-const connectToMongo = require('../db'); // Import the database connection function
+const Events = require('../models/Events'); 
+const connectToMongo = require('../db'); 
 
 const events = [
         {
@@ -36,15 +36,15 @@ const events = [
 ];
 
 const insertEvent = async () => {
-    await connectToMongo(); // Connect to MongoDB
+    await connectToMongo(); 
 
     try {
-        await Events.insertMany(events); // Insert the fruits data
+        await Events.insertMany(events); 
         console.log('Events data inserted successfully!');
     } catch (err) {
         console.error('Error inserting Events data:', err.message);
     } finally {
-        mongoose.connection.close(); // Close the connection after insertion
+        mongoose.connection.close();
     }
 };
 

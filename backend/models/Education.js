@@ -9,10 +9,6 @@ const educationSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    image: {
-        data: Buffer,
-        contentType: String
-    },
     category: {
         type: String,
         required: true
@@ -20,8 +16,11 @@ const educationSchema = new mongoose.Schema({
     articleLink: {
         type: String,
         required: true
+    },
+    imageUrl: {
+        type: String,
+        required: true
     }
 }, { timestamps: true });
 
-const Education = mongoose.model('Education', educationSchema);
-module.exports = Education;
+module.exports = mongoose.model('Education', educationSchema);
