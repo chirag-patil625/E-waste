@@ -53,6 +53,14 @@ const recycleSchema = new mongoose.Schema({
     createdAt: {
         type: Date,
         default: Date.now
+    },
+    pointsUsed: {
+        type: Boolean,
+        default: false
+    },
+    usedFor: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'RewardRequest'
     }
 }, { timestamps: true });
 

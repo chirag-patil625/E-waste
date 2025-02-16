@@ -5,6 +5,7 @@ const Reward = require('../models/Reward');
 const User = require('../models/User');
 const Recycle = require('../models/Recycle');
 const RewardRequest = require('../models/RewardRequest');
+const mongoose = require('mongoose');
 
 // Debug middleware
 router.use((req, res, next) => {
@@ -13,69 +14,90 @@ router.use((req, res, next) => {
 });
 
 // Get all available rewards
-router.get('/rewards', auth, async (req, res) => {
+router.get('/', auth, async (req, res) => {
     try {
+        console.log('Fetching rewards');
         const rewards = await Reward.find({ available: true });
-        res.json(rewards);
+        console.log('Found rewards:', rewards.length);
+        res.status(200).json(rewards);
     } catch (error) {
+        console.error('Error fetching rewards:', error);
         res.status(500).json({ error: 'Failed to fetch rewards' });
     }
 });
 
-// Get user points and stats
+// Update the user-stats route to include unused points
 router.get('/user-stats', auth, async (req, res) => {
     try {
-        console.log('User ID from token:', req.user._id); // Debug log
-
         const recycleRequests = await Recycle.find({ 
-            'submittedBy.userId': req.user._id,
+            'submittedBy.email': req.user.email,
             status: 'approved'
         });
 
-        console.log('Found recycle requests:', recycleRequests.length); // Debug log
+        const unusedPoints = await Recycle.aggregate([
+            {
+                $match: {
+                    'submittedBy.email': req.user.email,
+                    status: 'approved',
+                    pointsUsed: { $ne: true }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalUnusedPoints: { $sum: '$tokens' }
+                }
+            }
+        ]);
 
         const stats = {
-            totalPoints: recycleRequests.reduce((sum, request) => sum + (request.tokens || 0), 0),
-            itemsRecycled: recycleRequests.reduce((sum, request) => sum + request.quantity, 0),
-            totalRequests: recycleRequests.length,
-            rewardsClaimed: 0 // You might want to add a rewards claimed collection later
+            totalPoints: unusedPoints[0]?.totalUnusedPoints || 0,
+            itemsRecycled: recycleRequests.length,
+            rewardsClaimed: await RewardRequest.countDocuments({ userId: req.user._id })
         };
 
-        console.log('Sending stats:', stats); // Debug log
-        res.json(stats);
+        console.log('User stats:', stats);
+        res.json({ stats });
     } catch (error) {
-        console.error('Error in user-stats:', error); // Debug log
-        res.status(500).json({ 
-            error: 'Failed to fetch user stats',
-            details: error.message 
-        });
+        console.error('Error in user-stats:', error);
+        res.status(500).json({ error: 'Failed to fetch user stats' });
     }
 });
 
 // Redeem a reward
 router.post('/redeem/:rewardId', auth, async (req, res) => {
     try {
-        console.log('Redeem request body:', req.body); // Debug log
-        console.log('User ID:', req.user._id); // Debug log
-        console.log('Reward ID:', req.params.rewardId); // Debug log
+        if (!req.body || !req.body.address || !req.body.phone) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
 
         const { address, phone, notes } = req.body;
+        const userId = new mongoose.Types.ObjectId(req.user._id);
+        const rewardId = new mongoose.Types.ObjectId(req.params.rewardId);
+        
+        console.log('Processing redemption for user:', req.user.email);
 
-        // Validate required fields
-        if (!address || !phone) {
-            return res.status(400).json({ error: 'Address and phone are required' });
+        // Find reward first to get the cost
+        const reward = await Reward.findById(rewardId);
+        if (!reward) {
+            return res.status(404).json({ error: 'Reward not found' });
         }
 
-        const reward = await Reward.findById(req.params.rewardId);
-        if (!reward || !reward.available) {
-            return res.status(404).json({ error: 'Reward not found or unavailable' });
+        // Check if user has already redeemed this reward
+        const existingRequest = await RewardRequest.findOne({
+            userId: userId,
+            rewardId: rewardId
+        });
+
+        if (existingRequest) {
+            return res.status(400).json({ error: 'You have already redeemed this reward' });
         }
 
-        // Check user points
-        const userStats = await Recycle.aggregate([
+        // Calculate total available points from approved recycles
+        const pointsData = await Recycle.aggregate([
             {
                 $match: {
-                    'submittedBy.userId': req.user._id,
+                    'submittedBy.email': req.user.email,
                     status: 'approved'
                 }
             },
@@ -87,49 +109,77 @@ router.post('/redeem/:rewardId', auth, async (req, res) => {
             }
         ]);
 
-        const totalPoints = userStats[0]?.totalPoints || 0;
-        console.log('User total points:', totalPoints); // Debug log
+        // Calculate points already used in previous redemptions
+        const usedPointsData = await RewardRequest.aggregate([
+            {
+                $match: {
+                    userId: userId,
+                    status: { $ne: 'rejected' }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    usedPoints: { $sum: '$pointsCost' }
+                }
+            }
+        ]);
 
-        if (totalPoints < reward.pointsCost) {
-            return res.status(400).json({ error: 'Insufficient points' });
+        const totalPoints = pointsData[0]?.totalPoints || 0;
+        const usedPoints = usedPointsData[0]?.usedPoints || 0;
+        const availablePoints = totalPoints - usedPoints;
+
+        console.log('Total points:', totalPoints);
+        console.log('Used points:', usedPoints);
+        console.log('Available points:', availablePoints);
+        console.log('Required points:', reward.pointsCost);
+
+        if (availablePoints < reward.pointsCost) {
+            return res.status(400).json({ 
+                error: 'Insufficient points',
+                required: reward.pointsCost,
+                available: availablePoints
+            });
         }
 
         // Create redemption request
         const rewardRequest = new RewardRequest({
-            userId: req.user._id,
+            userId,
             rewardId: reward._id,
             rewardName: reward.name,
             pointsCost: reward.pointsCost,
             deliveryAddress: address,
-            phone: phone,
-            notes: notes || ''
+            phone,
+            notes,
+            status: 'pending'
         });
 
-        await rewardRequest.save();
-        console.log('Reward request created:', rewardRequest); // Debug log
+        const savedRequest = await rewardRequest.save();
 
-        // Return success response
-        res.json({ 
-            message: 'Reward redemption request submitted successfully',
-            remainingPoints: totalPoints - reward.pointsCost,
-            requestId: rewardRequest._id
+        res.status(200).json({
+            success: true,
+            message: 'Reward redeemed successfully',
+            remainingPoints: availablePoints - reward.pointsCost,
+            requestId: savedRequest._id
         });
+
     } catch (error) {
         console.error('Redemption error:', error);
-        res.status(500).json({ 
-            error: 'Failed to redeem reward',
-            details: error.message
-        });
+        res.status(500).json({ error: 'Failed to process redemption' });
     }
 });
 
-// Get user's reward requests
+// Get user's claimed rewards
 router.get('/my-requests', auth, async (req, res) => {
     try {
+        console.log('Fetching user requests for:', req.user._id);
         const requests = await RewardRequest.find({ userId: req.user._id })
-            .sort({ createdAt: -1 });
-        res.json(requests);
+            .sort({ createdAt: -1 })
+            .populate('rewardId');
+        console.log('Found requests:', requests.length);
+        res.status(200).json(requests);
     } catch (error) {
+        console.error('Error fetching requests:', error);
         res.status(500).json({ error: 'Failed to fetch reward requests' });
     }
 });

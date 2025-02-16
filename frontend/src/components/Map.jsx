@@ -1,140 +1,51 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
 
-const Map = () => {
-  const mapContainerRef = useRef(null);
-  const [map, setMap] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  //0PWMf4bYeUmSAi1IymzYSTR3vdeSYO9KYSncBf9E8oE
-  const hereApiKey = "";
+// Fix for default marker icons
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
+  iconUrl: require('leaflet/dist/images/marker-icon.png'),
+  shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
+});
 
-  // Initialize map
+// Sample e-waste facilities data
+const facilities = [
+  {
+    id: 1,
+    name: "Eco Recyclers",
+    position: [19.0760, 72.8777],
+    address: "123 Green Street, Mumbai",
+    phone: "+91 1234567890"
+  },
+  {
+    id: 2,
+    name: "Green E-Waste Solutions",
+    position: [19.0825, 72.8900],
+    address: "456 Tech Road, Mumbai",
+    phone: "+91 9876543210"
+  },
+];
+
+export default function Map() {
+  const [userLocation, setUserLocation] = useState(null);
+
   useEffect(() => {
-    // Default location (Mumbai)
-    const defaultLocation = { lat: 19.0760, lng: 72.8777 };
-
-    const initMap = () => {
-      try {
-        // Check if the map container exists
-        if (!mapContainerRef.current) {
-          console.error("Map container not found");
-          setError("Map container not found");
-          setIsLoading(false);
-          return;
-        }
-
-        // Initialize the Platform object
-        const platform = new window.H.service.Platform({
-          apikey: hereApiKey
-        });
-
-        const defaultLayers = platform.createDefaultLayers();
-
-        // Create map instance
-        const newMap = new window.H.Map(
-          mapContainerRef.current,
-          defaultLayers.vector.normal.map,
-          {
-            center: defaultLocation,
-            zoom: 12,
-            pixelRatio: window.devicePixelRatio || 1
-          }
-        );
-
-        // Enable the event system on the map instance
-        const mapEvents = new window.H.mapevents.MapEvents(newMap);
-
-        // Add default UI components
-        const ui = window.H.ui.UI.createDefault(newMap, defaultLayers);
-
-        // Enable map interaction (pan, zoom, etc.)
-        new window.H.mapevents.Behavior(mapEvents);
-
-        // Get user's location if available
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            (position) => {
-              const userLocation = {
-                lat: position.coords.latitude,
-                lng: position.coords.longitude
-              };
-              
-              // Add user location marker
-              const userMarker = new window.H.map.Marker(userLocation);
-              newMap.addObject(userMarker);
-              newMap.setCenter(userLocation);
-
-              // Add facility markers
-              const facilities = [
-                { name: "E-Waste Center 1", location: { lat: userLocation.lat + 0.01, lng: userLocation.lng + 0.01 } },
-                { name: "Recycling Hub", location: { lat: userLocation.lat - 0.01, lng: userLocation.lng - 0.01 } }
-              ];
-
-              facilities.forEach(facility => {
-                const marker = new window.H.map.Marker(facility.location);
-                newMap.addObject(marker);
-              });
-            },
-            (error) => {
-              console.warn("Geolocation error:", error);
-              // Add default marker for Mumbai
-              const marker = new window.H.map.Marker(defaultLocation);
-              newMap.addObject(marker);
-            }
-          );
-        }
-
-        // Handle window resize
-        window.addEventListener('resize', () => newMap.getViewPort().resize());
-
-        setMap(newMap);
-        setIsLoading(false);
-
-        return () => {
-          if (newMap) {
-            newMap.dispose();
-          }
-        };
-      } catch (err) {
-        console.error('Map initialization error:', err);
-        setError('Unable to initialize map. Please try again.');
-        setIsLoading(false);
+    // Get user's location
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUserLocation([position.coords.latitude, position.coords.longitude]);
+      },
+      () => {
+        // Default to Mumbai if location access denied
+        setUserLocation([19.0760, 72.8777]);
       }
-    };
-
-    // Wait for HERE Maps scripts to load
-    const waitForHereMaps = setInterval(() => {
-      if (window.H && window.H.Map) {
-        clearInterval(waitForHereMaps);
-        initMap();
-      }
-    }, 100);
-
-    return () => {
-      clearInterval(waitForHereMaps);
-      if (map) {
-        map.dispose();
-      }
-    };
+    );
   }, []);
 
-  if (error) {
-    return (
-      <div className="w-full h-[500px] rounded-xl overflow-hidden shadow-lg bg-gray-100 flex items-center justify-center">
-        <div className="text-center p-4">
-          <p className="text-red-500 font-medium mb-4">{error}</p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="px-6 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors"
-          >
-            Retry Loading Map
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (isLoading) {
+  if (!userLocation) {
     return (
       <div className="w-full h-[500px] rounded-xl overflow-hidden shadow-lg bg-gray-100 flex items-center justify-center">
         <div className="text-center p-4">
@@ -147,9 +58,45 @@ const Map = () => {
 
   return (
     <div className="w-full h-[500px] rounded-xl overflow-hidden shadow-lg">
-      <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} />
+      <MapContainer
+        center={userLocation}
+        zoom={13}
+        style={{ width: '100%', height: '100%' }}
+      >
+        <TileLayer
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        />
+        
+        {/* User location marker */}
+        <Marker position={userLocation}>
+          <Popup>You are here</Popup>
+        </Marker>
+
+        {/* Facility markers */}
+        {facilities.map(facility => (
+          <Marker key={facility.id} position={facility.position}>
+            <Popup>
+              <div className="p-2">
+                <h3 className="font-semibold">{facility.name}</h3>
+                <p className="text-sm text-gray-600">{facility.address}</p>
+                <p className="text-sm text-gray-600">{facility.phone}</p>
+                <button 
+                  onClick={() => {
+                    window.open(
+                      `https://www.openstreetmap.org/directions?from=${userLocation[0]},${userLocation[1]}&to=${facility.position[0]},${facility.position[1]}`,
+                      '_blank'
+                    );
+                  }}
+                  className="mt-2 px-3 py-1 bg-teal-500 text-white text-sm rounded hover:bg-teal-600"
+                >
+                  Get Directions
+                </button>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
+      </MapContainer>
     </div>
   );
-};
-
-export default Map;
+}

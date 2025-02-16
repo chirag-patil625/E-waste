@@ -19,11 +19,14 @@ export default function Rewards() {
     phone: '',
     notes: ''
   });
+  const [claimedRewards, setClaimedRewards] = useState([]);
+  const [showClaimedRewards, setShowClaimedRewards] = useState(false);
 
   useEffect(() => {
     if (isLoggedIn) {
       fetchUserStats();
       fetchRewards();
+      fetchClaimedRewards();
     }
   }, [isLoggedIn]);
 
@@ -36,30 +39,65 @@ export default function Rewards() {
       });
       if (!response.ok) throw new Error('Failed to fetch stats');
       const data = await response.json();
+      
+      // Update userStats with the new points calculation
       setUserStats({
         totalPoints: data.stats.totalPoints || 0,
         itemsRecycled: data.stats.itemsRecycled || 0,
         rewardsClaimed: data.stats.rewardsClaimed || 0
       });
     } catch (error) {
+      console.error('Error fetching stats:', error);
       toast.error('Failed to load user stats');
     }
   };
 
   const fetchRewards = async () => {
     try {
+      console.log('Fetching rewards...');
       const response = await fetch('http://localhost:5000/api/rewards', {
         headers: {
+          'Accept': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('userToken')}`
         }
       });
-      if (!response.ok) throw new Error('Failed to fetch rewards');
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to fetch rewards');
+      }
+      
       const data = await response.json();
+      console.log('Rewards fetched:', data);
       setRewards(data);
     } catch (error) {
-      toast.error('Failed to load rewards');
+      console.error('Fetch rewards error:', error);
+      toast.error(error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchClaimedRewards = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/rewards/my-requests', {
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('userToken')}`
+        }
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to fetch claimed rewards');
+      }
+
+      const data = await response.json();
+      console.log('Claimed rewards:', data);
+      setClaimedRewards(data);
+    } catch (error) {
+      console.error('Fetch claimed rewards error:', error);
+      toast.error(error.message);
     }
   };
 
@@ -107,36 +145,40 @@ export default function Rewards() {
     const handleSubmit = async (e) => {
       e.preventDefault();
       try {
-        console.log('Submitting form data:', formData); // Debug log
-        console.log('Selected reward:', selectedReward); // Debug log
-
         const response = await fetch(`http://localhost:5000/api/rewards/redeem/${selectedReward._id}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('userToken')}`
           },
-          body: JSON.stringify({
-            address: formData.address,
-            phone: formData.phone,
-            notes: formData.notes
-          })
+          body: JSON.stringify(formData)
         });
 
         const data = await response.json();
-        console.log('Response:', data); // Debug log
 
         if (!response.ok) {
+          if (data.error === 'Insufficient points') {
+            throw new Error(`Insufficient points. You need ${data.required} points but have ${data.available} points.`);
+          }
           throw new Error(data.error || 'Failed to redeem reward');
         }
 
-        toast.success('Reward redemption successful!');
+        toast.success('Reward redeemed successfully!');
         setShowRedeemModal(false);
         setSelectedReward(null);
-        fetchUserStats();
+        
+        // Update the points immediately after redemption
+        setUserStats(prev => ({
+          ...prev,
+          totalPoints: data.remainingPoints,
+          rewardsClaimed: prev.rewardsClaimed + 1
+        }));
+
+        // Refresh claimed rewards
+        await fetchClaimedRewards();
       } catch (error) {
-        console.error('Redemption error:', error); // Debug log
-        toast.error(error.message || 'Failed to redeem reward');
+        console.error('Error:', error);
+        toast.error(error.message);
       }
     };
 
@@ -208,6 +250,40 @@ export default function Rewards() {
     );
   };
 
+  const ClaimedRewardsList = () => (
+    <div className="mt-8">
+      <h2 className="text-2xl font-bold text-gray-800 mb-6">My Claimed Rewards</h2>
+      <div className="grid grid-cols-1 gap-4">
+        {claimedRewards.map(request => (
+          <div key={request._id} className="bg-white p-4 rounded-lg shadow">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="font-semibold">{request.rewardName}</h3>
+                <p className="text-sm text-gray-600">
+                  Claimed on: {new Date(request.createdAt).toLocaleDateString()}
+                </p>
+                <p className="text-sm text-gray-600">Status: 
+                  <span className={`ml-1 ${
+                    request.status === 'approved' ? 'text-green-600' :
+                    request.status === 'rejected' ? 'text-red-600' :
+                    'text-yellow-600'
+                  }`}>
+                    {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                  </span>
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-medium text-gray-600">
+                  Points spent: {request.pointsCost}
+                </p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
   const handleRedeemClick = (reward) => {
     if (userStats.totalPoints >= reward.pointsCost) {
       setSelectedReward(reward);
@@ -260,40 +336,64 @@ export default function Rewards() {
 
       {/* Available Rewards */}
       <div className="container mx-auto px-4">
-        <h2 className="text-2xl font-bold text-gray-800 mb-8 text-center">Available Rewards</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {rewards.map(reward => (
-            <div key={reward._id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
-              <div className="h-48 overflow-hidden">
-                <img 
-                  src={reward.imageUrl} 
-                  alt={reward.name}
-                  className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-300"
-                />
-              </div>
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-xl font-bold text-gray-800">{reward.name}</h3>
-                  <span className="px-3 py-1 bg-teal-100 text-teal-600 rounded-full text-sm font-medium">
-                    {reward.pointsCost} pts
-                  </span>
-                </div>
-                <p className="text-gray-600 mb-4">{reward.description}</p>
-                <button
-                  onClick={() => handleRedeemClick(reward)}
-                  disabled={userStats.totalPoints < reward.pointsCost}
-                  className={`w-full py-2 rounded-lg transition-colors duration-200 ${
-                    userStats.totalPoints >= reward.pointsCost
-                      ? 'bg-teal-500 text-white hover:bg-teal-600'
-                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  }`}
-                >
-                  {userStats.totalPoints >= reward.pointsCost ? 'Redeem Now' : 'Not Enough Points'}
-                </button>
-              </div>
-            </div>
-          ))}
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-2xl font-bold text-gray-800">
+            {showClaimedRewards ? 'Claimed Rewards' : 'Available Rewards'}
+          </h2>
+          <button
+            onClick={() => setShowClaimedRewards(!showClaimedRewards)}
+            className="px-4 py-2 bg-teal-500 text-white rounded hover:bg-teal-600 transition-colors"
+          >
+            {showClaimedRewards ? 'Show Available Rewards' : 'Show My Claims'}
+          </button>
         </div>
+
+        {showClaimedRewards ? (
+          <ClaimedRewardsList />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            {rewards.map(reward => (
+              <div key={reward._id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
+                <div className="h-48 overflow-hidden">
+                  <img 
+                    src={reward.imageUrl} 
+                    alt={reward.name}
+                    className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-300"
+                  />
+                </div>
+                <div className="p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <h3 className="text-xl font-bold text-gray-800">{reward.name}</h3>
+                    <span className="px-3 py-1 bg-teal-100 text-teal-600 rounded-full text-sm font-medium">
+                      {reward.pointsCost} pts
+                    </span>
+                  </div>
+                  <p className="text-gray-600 mb-4">{reward.description}</p>
+                  {claimedRewards.some(claim => claim.rewardId._id === reward._id) ? (
+                    <button
+                      disabled
+                      className="w-full py-2 rounded-lg bg-gray-100 text-gray-400 cursor-not-allowed"
+                    >
+                      Already Redeemed
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleRedeemClick(reward)}
+                      disabled={userStats.totalPoints < reward.pointsCost}
+                      className={`w-full py-2 rounded-lg transition-colors duration-200 ${
+                        userStats.totalPoints >= reward.pointsCost
+                          ? 'bg-teal-500 text-white hover:bg-teal-600'
+                          : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      {userStats.totalPoints >= reward.pointsCost ? 'Redeem Now' : 'Not Enough Points'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* How to Earn Points */}
         <div className="max-w-4xl mx-auto mt-16 p-8 bg-white rounded-xl shadow-md">

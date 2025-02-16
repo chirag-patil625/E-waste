@@ -24,12 +24,20 @@ export default function Home() {
                   Find Facility
                 </Link>
                 {isLoggedIn && (
-                  <Link 
-                    to="/recycle" 
-                    className="bg-gradient-to-r from-green-400 to-emerald-500 text-white px-8 py-3 rounded-lg hover:from-green-500 hover:to-emerald-600 transition duration-300 animate-pulse hover:animate-none"
-                  >
-                    Recycle Now ♻️
-                  </Link>
+                  <>
+                    <Link 
+                      to="/recycle" 
+                      className="bg-gradient-to-r from-green-400 to-emerald-500 text-white px-8 py-3 rounded-lg hover:from-green-500 hover:to-emerald-600 transition duration-300 animate-pulse hover:animate-none"
+                    >
+                      Recycle Now ♻️
+                    </Link>
+                    <Link 
+                      to="/rewards" 
+                      className="bg-gradient-to-r from-purple-400 to-indigo-500 text-white px-8 py-3 rounded-lg hover:from-purple-500 hover:to-indigo-600 transition duration-300 shadow-lg hover:shadow-xl"
+                    >
+                      Redeem Rewards 🎁
+                    </Link>
+                  </>
                 )}
                 <Link to="/learn" className="border-2 border-green-500 text-green-500 px-8 py-3 rounded-lg hover:bg-green-500 hover:text-white transition duration-300">
                   Learn More

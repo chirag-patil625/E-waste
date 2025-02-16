@@ -1,13 +1,26 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 export default function Footer() {
+  const [email, setEmail] = useState('');
+
+  const handleSubscribe = (e) => {
+    e.preventDefault();
+    if (email) {
+      toast.success('Thanks for subscribing to our newsletter!');
+      setEmail('');
+    } else {
+      toast.error('Please enter a valid email');
+    }
+  };
+
   return (
     <footer className="bg-gradient-to-b from-teal-700 to-teal-900 text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 py-12">
-          {/* About Section */}
-          <div className="space-y-4">
+        <div className="grid grid-cols-1 gap-8 py-12 sm:grid-cols-2 lg:grid-cols-4">
+          {/* About Section - Full width on mobile */}
+          <div className="space-y-4 col-span-1 sm:col-span-2 lg:col-span-1">
             <h3 className="text-2xl font-bold mb-4">E-Waste</h3>
             <p className="text-teal-100 text-sm leading-relaxed">
               Join us in our mission to create a sustainable future through responsible electronic waste management and recycling.
@@ -31,70 +44,78 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Quick Links */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
-            <ul className="space-y-2">
-              <li>
-                <Link to="/find-facility" className="text-teal-100 hover:text-white transition-colors duration-200">Find Facility</Link>
-              </li>
-              <li>
-                <Link to="/events" className="text-teal-100 hover:text-white transition-colors duration-200">Events</Link>
-              </li>
-              <li>
-                <Link to="/learn" className="text-teal-100 hover:text-white transition-colors duration-200">Education</Link>
-              </li>
-              <li>
-                <Link to="/about-us" className="text-teal-100 hover:text-white transition-colors duration-200">About Us</Link>
-              </li>
-            </ul>
+          {/* Quick Links and Contact Info - Side by side on mobile */}
+          <div className="grid grid-cols-2 gap-4 sm:gap-8 col-span-1 sm:col-span-2 lg:col-span-2">
+            {/* Quick Links */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
+              <ul className="space-y-2">
+                <li>
+                  <Link to="/find-facility" className="text-teal-100 hover:text-white transition-colors duration-200">Find Facility</Link>
+                </li>
+                <li>
+                  <Link to="/events" className="text-teal-100 hover:text-white transition-colors duration-200">Events</Link>
+                </li>
+                <li>
+                  <Link to="/learn" className="text-teal-100 hover:text-white transition-colors duration-200">Education</Link>
+                </li>
+                <li>
+                  <Link to="/about-us" className="text-teal-100 hover:text-white transition-colors duration-200">About Us</Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Contact Info */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Contact Us</h3>
+              <ul className="space-y-3">
+                <li className="flex items-center text-teal-100">
+                  <svg className="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span className="text-sm">123 Green Street, Eco City</span>
+                </li>
+                <li className="flex items-center text-teal-100">
+                  <svg className="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  <span className="text-sm">contact@ewaste.com</span>
+                </li>
+                <li className="flex items-center text-teal-100">
+                  <svg className="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                  <span className="text-sm">+1 234 567 890</span>
+                </li>
+              </ul>
+            </div>
           </div>
 
-          {/* Contact Info */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Contact Us</h3>
-            <ul className="space-y-2">
-              <li className="flex items-center text-teal-100">
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                123 Green Street, Eco City
-              </li>
-              <li className="flex items-center text-teal-100">
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-                contact@ewaste.com
-              </li>
-              <li className="flex items-center text-teal-100">
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                </svg>
-                +1 234 567 890
-              </li>
-            </ul>
-          </div>
-
-          {/* Newsletter */}
-          <div>
+          {/* Newsletter - Full width on mobile */}
+          <div className="mt-8 sm:mt-0">
             <h3 className="text-lg font-semibold mb-4">Newsletter</h3>
             <p className="text-teal-100 text-sm mb-4">Stay updated with our latest news and updates.</p>
-            <form className="space-y-2">
+            <form onSubmit={handleSubscribe} className="space-y-2">
               <input
                 type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
                 className="w-full px-4 py-2 rounded-lg bg-teal-800 border border-teal-600 text-white placeholder-teal-300 focus:outline-none focus:ring-2 focus:ring-teal-500"
               />
-              <button className="w-full px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors duration-200">
+              <button 
+                type="submit"
+                className="w-full px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors duration-200"
+              >
                 Subscribe
               </button>
             </form>
           </div>
         </div>
 
-        {/* Bottom Bar */}
-        <div className="border-t border-teal-600 py-4 text-center text-teal-100 text-sm">
+        {/* Bottom Bar - Responsive padding */}
+        <div className="border-t border-teal-600 py-4 px-4 sm:px-0 text-center text-teal-100 text-sm">
           <p>© 2024 E-Waste. All rights reserved.</p>
         </div>
       </div>

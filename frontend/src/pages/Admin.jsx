@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaHome, FaRecycle, FaBook, FaCalendar, FaSignOutAlt } from 'react-icons/fa';
+import { FaHome, FaRecycle, FaBook, FaCalendar, FaSignOutAlt, FaGift } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
 export default function Admin() {
@@ -24,7 +24,8 @@ export default function Admin() {
     { id: 'dashboard', label: 'Dashboard', icon: <FaHome /> },
     { id: 'requests', label: 'Recycle Requests', icon: <FaRecycle /> },
     { id: 'education', label: 'Education', icon: <FaBook /> },
-    { id: 'events', label: 'Events', icon: <FaCalendar /> }
+    { id: 'events', label: 'Events', icon: <FaCalendar /> },
+    { id: 'rewards', label: 'Reward Requests', icon: <FaGift /> } // Add this line
   ];
 
   // Add new state for forms
@@ -50,6 +51,9 @@ export default function Admin() {
 
   // Add categories constant
   const EVENT_CATEGORIES = ['Collection Drive', 'Workshop', 'Conference'];
+
+  // Add new state for reward requests
+  const [rewardRequests, setRewardRequests] = useState([]);
 
   // Authentication
   const handleLogin = async (e) => {
@@ -157,20 +161,28 @@ export default function Admin() {
     }
   };
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      if (activeTab === 'events') {
-        fetchEvents();
-      } else if (activeTab === 'education') {
-        fetchEducation();
-      }
-    }
-  }, [isAuthenticated, activeTab]);
-
-  // Request handling
-  const handleRequestAction = async (id, status, tokens = 0) => {
+  // Add new fetch function
+  const fetchRewardRequests = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/admin/recycleRequests/${id}`, {
+      const response = await fetch('http://localhost:5000/admin/reward-requests', {
+        headers: {
+          'Authorization': `Bearer ${sessionStorage.getItem('adminToken')}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setRewardRequests(data);
+      }
+    } catch (error) {
+      console.error('Error fetching reward requests:', error);
+      toast.error('Failed to fetch reward requests');
+    }
+  };
+
+  // Add this function before useEffect
+  const handleRequestAction = async (requestId, status, tokens = 0) => {
+    try {
+      const response = await fetch(`http://localhost:5000/admin/recycleRequests/${requestId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -179,17 +191,31 @@ export default function Admin() {
         body: JSON.stringify({ status, tokens })
       });
 
-      if (response.ok) {
-        toast.success(`Request ${status} successfully`);
-        fetchRecycleRequests();
-        fetchDashboardStats();
-      } else {
+      if (!response.ok) {
         throw new Error('Failed to update request');
       }
+
+      toast.success(`Request ${status} successfully`);
+      fetchRecycleRequests();
     } catch (error) {
       toast.error(error.message);
     }
   };
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchRecycleRequests();
+      fetchDashboardStats();
+      
+      if (activeTab === 'education') {
+        fetchEducation();
+      } else if (activeTab === 'events') {
+        fetchEvents();
+      } else if (activeTab === 'rewards') {
+        fetchRewardRequests();
+      }
+    }
+  }, [isAuthenticated, activeTab]);
 
   const handleDeleteEvent = async (id) => {
     if (window.confirm('Are you sure you want to delete this event?')) {
@@ -863,6 +889,105 @@ export default function Admin() {
     );
   };
 
+  // Add this new component
+  const RewardsTab = () => (
+    <div className="bg-white rounded-lg shadow-md">
+      <div className="overflow-x-auto">
+        <table className="min-w-full">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Reward</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Points Cost</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {rewardRequests.map((request) => (
+              <tr key={request._id}>
+                <td className="px-6 py-4">
+                  <div>
+                    <div className="font-medium">{request.userId?.name}</div>
+                    <div className="text-sm text-gray-500">{request.userId?.email}</div>
+                  </div>
+                </td>
+                <td className="px-6 py-4">
+                  <div>
+                    <div className="font-medium">{request.rewardName}</div>
+                    <div className="text-sm text-gray-500">Claimed: {new Date(request.createdAt).toLocaleDateString()}</div>
+                  </div>
+                </td>
+                <td className="px-6 py-4">{request.pointsCost}</td>
+                <td className="px-6 py-4">
+                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                    request.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                    request.status === 'approved' ? 'bg-green-100 text-green-800' :
+                    'bg-red-100 text-red-800'
+                  }`}>
+                    {request.status}
+                  </span>
+                </td>
+                <td className="px-6 py-4">
+                  {request.status === 'pending' && (
+                    <div className="space-x-2">
+                      <button
+                        onClick={async () => {
+                          try {
+                            const response = await fetch(`http://localhost:5000/admin/reward-requests/${request._id}`, {
+                              method: 'PATCH',
+                              headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${sessionStorage.getItem('adminToken')}`
+                              },
+                              body: JSON.stringify({ status: 'approved' })
+                            });
+                            if (response.ok) {
+                              toast.success('Reward request approved');
+                              fetchRewardRequests();
+                            }
+                          } catch (error) {
+                            toast.error('Failed to approve request');
+                          }
+                        }}
+                        className="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        onClick={async () => {
+                          try {
+                            const response = await fetch(`http://localhost:5000/admin/reward-requests/${request._id}`, {
+                              method: 'PATCH',
+                              headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${sessionStorage.getItem('adminToken')}`
+                              },
+                              body: JSON.stringify({ status: 'rejected' })
+                            });
+                            if (response.ok) {
+                              toast.success('Reward request rejected');
+                              fetchRewardRequests();
+                            }
+                          } catch (error) {
+                            toast.error('Failed to reject request');
+                          }
+                        }}
+                        className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
   // Show login modal if not authenticated
   if (!isAuthenticated) {
     return <LoginModal />;
@@ -1000,6 +1125,8 @@ export default function Admin() {
           {activeTab === 'education' && <EducationTab />}
 
           {activeTab === 'events' && <EventsTab />}
+
+          {activeTab === 'rewards' && <RewardsTab />} {/* Add this line */}
         </main>
       </div>
 

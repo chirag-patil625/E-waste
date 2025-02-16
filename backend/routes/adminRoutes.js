@@ -8,6 +8,7 @@ const Event = require('../models/Events');
 const Education = require('../models/Education');
 const Recycle = require('../models/Recycle');
 const User = require('../models/User');  // Add this line
+const RewardRequest = require('../models/RewardRequest'); // Add this import
 const upload = require('../middleware/upload');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'thisisaverylongstringthatshouldbeusedasasecret';
@@ -192,17 +193,81 @@ router.get('/events', adminAuth, async (req, res) => {
 
 router.get('/dashboard-stats', adminAuth, async (req, res) => {
     try {
-        const pendingRequests = await Recycle.countDocuments({ status: 'pending' });
-        
-        const totalUsers = await User.countDocuments();
+        const [pendingRequests, totalUsers] = await Promise.all([
+            Recycle.countDocuments({ status: 'pending' }),
+            User.countDocuments()
+        ]);
 
         res.json({
             pendingRequests,
-            totalUsers
+            totalUsers,
+            // Remove pendingRewards for now since we're still setting up the rewards system
         });
     } catch (error) {
         console.error('Error fetching dashboard stats:', error);
         res.status(500).json({ error: 'Failed to fetch dashboard statistics' });
+    }
+});
+
+// Get all reward requests
+router.get('/reward-requests', adminAuth, async (req, res) => {
+    try {
+        const requests = await RewardRequest.find({})
+            .populate('rewardId')
+            .populate('userId', 'name email')
+            .sort({ createdAt: -1 });
+        res.json(requests);
+    } catch (error) {
+        console.error('Error fetching reward requests:', error);
+        res.status(500).json({ error: 'Failed to fetch reward requests' });
+    }
+});
+
+// Update reward request status
+router.patch('/reward-requests/:id', adminAuth, async (req, res) => {
+    try {
+        const { status } = req.body;
+        
+        if (!['approved', 'rejected'].includes(status)) {
+            return res.status(400).json({ error: 'Invalid status' });
+        }
+
+        const request = await RewardRequest.findById(req.params.id);
+        if (!request) {
+            return res.status(404).json({ error: 'Reward request not found' });
+        }
+
+        // Only process if the status is changing from pending
+        if (request.status === 'pending') {
+            request.status = status;
+            request.processedAt = new Date();
+
+            // If rejecting, mark any points used for this request as available again
+            if (status === 'rejected') {
+                await Recycle.updateMany(
+                    {
+                        'submittedBy.email': request.userId.email,
+                        usedFor: request._id
+                    },
+                    {
+                        $set: {
+                            pointsUsed: false,
+                            usedFor: null
+                        }
+                    }
+                );
+            }
+
+            await request.save();
+        }
+
+        res.json({
+            message: `Reward request ${status}`,
+            request: request
+        });
+    } catch (error) {
+        console.error('Error updating reward request:', error);
+        res.status(500).json({ error: 'Failed to update reward request' });
     }
 });
 
